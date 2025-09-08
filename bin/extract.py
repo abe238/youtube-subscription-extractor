@@ -10,10 +10,14 @@ import html
 import argparse
 import sys
 import os
+import json
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
 from pathlib import Path
 from urllib.parse import unquote
+import datetime
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __author__ = "abe238"
 
 def convert_subscriber_count_to_raw(sub_count):
@@ -282,6 +286,175 @@ def save_channels_to_csv(channels, output_file, verbose=False):
         print(f"❌ Error saving CSV file: {e}")
         return False
 
+def save_channels_to_json(channels, output_file, verbose=False):
+    """Save channels to JSON file"""
+    if not channels:
+        print("❌ No channels found to save.")
+        return False
+    
+    try:
+        # Create metadata for the export
+        export_data = {
+            "metadata": {
+                "export_date": datetime.datetime.now().isoformat(),
+                "extractor_version": __version__,
+                "total_channels": len(channels),
+                "channels_with_subscribers": sum(1 for ch in channels if ch['SubscriberCount']),
+                "channels_with_images": sum(1 for ch in channels if ch['ChannelImage']),
+                "channels_with_descriptions": sum(1 for ch in channels if ch['ChannelDescription'])
+            },
+            "channels": channels
+        }
+        
+        with open(output_file, 'w', encoding='utf-8') as jsonfile:
+            json.dump(export_data, jsonfile, indent=2, ensure_ascii=False)
+        
+        if verbose:
+            print(f"💾 Saved {len(channels)} channels to {output_file}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error saving JSON file: {e}")
+        return False
+
+def save_channels_to_xml(channels, output_file, verbose=False):
+    """Save channels to XML file"""
+    if not channels:
+        print("❌ No channels found to save.")
+        return False
+    
+    try:
+        # Create root element
+        root = ET.Element("youtube_channels")
+        
+        # Add metadata
+        metadata = ET.SubElement(root, "metadata")
+        ET.SubElement(metadata, "export_date").text = datetime.datetime.now().isoformat()
+        ET.SubElement(metadata, "extractor_version").text = __version__
+        ET.SubElement(metadata, "total_channels").text = str(len(channels))
+        ET.SubElement(metadata, "channels_with_subscribers").text = str(sum(1 for ch in channels if ch['SubscriberCount']))
+        ET.SubElement(metadata, "channels_with_images").text = str(sum(1 for ch in channels if ch['ChannelImage']))
+        ET.SubElement(metadata, "channels_with_descriptions").text = str(sum(1 for ch in channels if ch['ChannelDescription']))
+        
+        # Add channels
+        channels_element = ET.SubElement(root, "channels")
+        
+        for channel in channels:
+            channel_elem = ET.SubElement(channels_element, "channel")
+            
+            # Add each field as a child element
+            for field_name, field_value in channel.items():
+                field_elem = ET.SubElement(channel_elem, field_name.lower())
+                field_elem.text = str(field_value) if field_value else ""
+        
+        # Pretty print the XML
+        xml_str = ET.tostring(root, encoding='unicode')
+        dom = minidom.parseString(xml_str)
+        pretty_xml = dom.toprettyxml(indent="  ")
+        
+        # Remove empty lines
+        pretty_xml = '\n'.join([line for line in pretty_xml.split('\n') if line.strip()])
+        
+        with open(output_file, 'w', encoding='utf-8') as xmlfile:
+            xmlfile.write(pretty_xml)
+        
+        if verbose:
+            print(f"💾 Saved {len(channels)} channels to {output_file}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error saving XML file: {e}")
+        return False
+
+def save_channels_to_sql(channels, output_file, verbose=False):
+    """Save channels to SQL file"""
+    if not channels:
+        print("❌ No channels found to save.")
+        return False
+    
+    try:
+        with open(output_file, 'w', encoding='utf-8') as sqlfile:
+            # Write SQL header
+            sqlfile.write("-- YouTube Channels Export\n")
+            sqlfile.write(f"-- Generated on: {datetime.datetime.now().isoformat()}\n")
+            sqlfile.write(f"-- Extractor version: {__version__}\n")
+            sqlfile.write(f"-- Total channels: {len(channels)}\n\n")
+            
+            # Create table
+            sqlfile.write("-- Create table for YouTube channels\n")
+            sqlfile.write("CREATE TABLE IF NOT EXISTS youtube_channels (\n")
+            sqlfile.write("    id INTEGER PRIMARY KEY AUTOINCREMENT,\n")
+            sqlfile.write("    channel_name VARCHAR(255) NOT NULL,\n")
+            sqlfile.write("    channel_link VARCHAR(500) NOT NULL UNIQUE,\n")
+            sqlfile.write("    channel_image VARCHAR(500),\n")
+            sqlfile.write("    subscriber_count VARCHAR(20),\n")
+            sqlfile.write("    subscriber_count_raw INTEGER,\n")
+            sqlfile.write("    channel_description TEXT,\n")
+            sqlfile.write("    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n")
+            sqlfile.write(");\n\n")
+            
+            # Clear existing data
+            sqlfile.write("-- Clear existing data\n")
+            sqlfile.write("DELETE FROM youtube_channels;\n\n")
+            
+            # Insert data
+            sqlfile.write("-- Insert channel data\n")
+            
+            for channel in channels:
+                # Escape single quotes in strings
+                name = channel['ChannelName'].replace("'", "''")
+                link = channel['ChannelLink'].replace("'", "''")
+                image = channel['ChannelImage'].replace("'", "''") if channel['ChannelImage'] else ''
+                sub_count = channel['SubscriberCount'].replace("'", "''") if channel['SubscriberCount'] else ''
+                sub_raw = channel['SubsCountRaw'] if channel['SubsCountRaw'] and channel['SubsCountRaw'].isdigit() else 'NULL'
+                description = channel['ChannelDescription'].replace("'", "''") if channel['ChannelDescription'] else ''
+                
+                sqlfile.write(f"INSERT INTO youtube_channels (channel_name, channel_link, channel_image, subscriber_count, subscriber_count_raw, channel_description) VALUES\n")
+                sqlfile.write(f"  ('{name}', '{link}', '{image}', '{sub_count}', {sub_raw}, '{description}');\n")
+            
+            sqlfile.write("\n-- Create indexes for better performance\n")
+            sqlfile.write("CREATE INDEX IF NOT EXISTS idx_channel_name ON youtube_channels(channel_name);\n")
+            sqlfile.write("CREATE INDEX IF NOT EXISTS idx_subscriber_count_raw ON youtube_channels(subscriber_count_raw);\n")
+            sqlfile.write("\n-- End of export\n")
+        
+        if verbose:
+            print(f"💾 Saved {len(channels)} channels to {output_file}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error saving SQL file: {e}")
+        return False
+
+def get_output_format_from_extension(filename):
+    """Determine output format from file extension"""
+    ext = Path(filename).suffix.lower()
+    format_map = {
+        '.csv': 'csv',
+        '.json': 'json',
+        '.xml': 'xml',
+        '.sql': 'sql'
+    }
+    return format_map.get(ext, 'csv')  # Default to CSV
+
+def save_channels(channels, output_file, output_format=None, verbose=False):
+    """Save channels in the specified format"""
+    if output_format is None:
+        output_format = get_output_format_from_extension(output_file)
+    
+    save_functions = {
+        'csv': save_channels_to_csv,
+        'json': save_channels_to_json,
+        'xml': save_channels_to_xml,
+        'sql': save_channels_to_sql
+    }
+    
+    if output_format not in save_functions:
+        print(f"❌ Unsupported output format: {output_format}")
+        print(f"Supported formats: {', '.join(save_functions.keys())}")
+        return False
+    
+    return save_functions[output_format](channels, output_file, verbose)
+
 def main():
     """Main function with argument parsing"""
     
@@ -292,6 +465,9 @@ def main():
 Examples:
   {sys.argv[0]} subscriptions.mhtml
   {sys.argv[0]} subscriptions.mhtml --output my_channels.csv
+  {sys.argv[0]} subscriptions.mhtml --output data.json --format json
+  {sys.argv[0]} subscriptions.mhtml --output channels.xml
+  {sys.argv[0]} subscriptions.mhtml --output database.sql --format sql
   {sys.argv[0]} subscriptions.mhtml --quality fast --verbose
   {sys.argv[0]} subscriptions.mhtml --output-dir ./exports/
 
@@ -304,10 +480,14 @@ For more information, visit: https://github.com/abe238/youtube-subscription-extr
     
     parser.add_argument('--output', '-o',
                        default='youtube_channels.csv',
-                       help='Output CSV filename (default: youtube_channels.csv)')
+                       help='Output filename (default: youtube_channels.csv)')
     
     parser.add_argument('--output-dir',
                        help='Output directory path (default: current directory)')
+    
+    parser.add_argument('--format', '-f',
+                       choices=['csv', 'json', 'xml', 'sql'],
+                       help='Output format (auto-detected from file extension if not specified)')
     
     parser.add_argument('--quality',
                        choices=['fast', 'comprehensive'],
@@ -371,8 +551,11 @@ For more information, visit: https://github.com/abe238/youtube-subscription-extr
             print("3. Try re-exporting the file with a different browser")
             sys.exit(1)
         
-        # Save to CSV
-        if save_channels_to_csv(channels, str(output_path), args.verbose):
+        # Determine output format
+        output_format = args.format if args.format else get_output_format_from_extension(str(output_path))
+        
+        # Save in the specified format
+        if save_channels(channels, str(output_path), output_format, args.verbose):
             # Display statistics
             channels_with_subs = sum(1 for ch in channels if ch['SubscriberCount'])
             channels_with_images = sum(1 for ch in channels if ch['ChannelImage'])

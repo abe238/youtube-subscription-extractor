@@ -16,7 +16,7 @@ Perfect for content creators, researchers, marketers, and anyone who needs to an
 - 🖼️ **Advanced Image Extraction** - Recovers profile images from MHTML Content-Location headers
 - 🧹 **MHTML Processing** - Properly handles complex MHTML encoding and structure
 - ⚡ **Efficient Processing** - Handles large subscription lists (500+ channels)
-- 📄 **CSV Output** - Clean, structured data ready for analysis
+- 📄 **Multiple Export Formats** - CSV, JSON, XML, and SQL output formats
 - 🛡️ **Error Recovery** - Graceful handling of malformed or incomplete data
 - 🔧 **Cross-Platform** - Works on Windows, macOS, and Linux
 
@@ -56,6 +56,11 @@ python bin/extract.py path/to/subscriptions.mhtml
 # Custom output file
 python bin/extract.py subscriptions.mhtml --output my_channels.csv
 
+# Export to different formats
+python bin/extract.py subscriptions.mhtml --output data.json
+python bin/extract.py subscriptions.mhtml --output channels.xml
+python bin/extract.py subscriptions.mhtml --output database.sql
+
 # Specify output directory
 python bin/extract.py subscriptions.mhtml --output-dir ./exports/
 ```
@@ -80,9 +85,19 @@ python bin/extract.py subscriptions.mhtml --output-dir ./exports/
 - **Browser Extensions**: Use MHTML export extensions
 - **Command Line**: Use tools like `wget` or `curl` with proper cookies
 
-## 📊 Output Format
+## 📊 Output Formats
 
-The extractor generates a CSV file with the following columns:
+The extractor supports multiple output formats, automatically detected from file extension or explicitly specified:
+
+### Supported Formats
+- **CSV** (`.csv`) - Comma-separated values for spreadsheet applications
+- **JSON** (`.json`) - Structured data with metadata for programmatic use
+- **XML** (`.xml`) - Hierarchical markup format
+- **SQL** (`.sql`) - Database insert statements with table creation
+
+### Data Fields
+
+All formats include the following channel information:
 
 | Column | Description | Example |
 |--------|-------------|---------|
@@ -93,11 +108,77 @@ The extractor generates a CSV file with the following columns:
 | `SubsCountRaw` | Raw subscriber number | "29700" |
 | `ChannelDescription` | Channel description text | "AI (Artificial Intelligence) made fun..." |
 
-### Sample Output
+### Sample Outputs
+
+**CSV Format:**
 ```csv
 ChannelName,ChannelLink,ChannelImage,SubscriberCount,SubsCountRaw,ChannelDescription
-AI For Humans,https://www.youtube.com/@AIForHumansShow,https://yt3.googleusercontent.com/N7gHh80WiWb3kE6tSz3WusSAgrHAI8BSk8dKM3a2aNHyM-nkAhkBju6LehXkoEKrHVaYItimBk8=s176-c-k-c0x00ffffff-no-rj-mo,29.7K,29700,"AI (Artificial Intelligence) made fun. Kevin Pereira & Gavin Purcell lead you through hands on demos of AI tools & the latest in AI news."
-_vector_,https://www.youtube.com/@_vector_,https://yt3.googleusercontent.com/xk1LtaFeJ_GgnoCuljfLe0LHesN7RRU5Fj11ucHoF-DsVU_fmPn1Mb_eqfqijXpfbtzvHphkrg=s176-c-k-c0x00ffffff-no-rj-mo,31.4M,31400000,Subscribe for a cookie! 🍪
+AI For Humans,https://www.youtube.com/@AIForHumansShow,https://yt3.googleusercontent.com/...,29.7K,29700,"AI made fun..."
+```
+
+**JSON Format:**
+```json
+{
+  "metadata": {
+    "export_date": "2024-09-08T12:00:00",
+    "extractor_version": "1.1.0",
+    "total_channels": 64,
+    "channels_with_subscribers": 64,
+    "channels_with_images": 8,
+    "channels_with_descriptions": 52
+  },
+  "channels": [
+    {
+      "ChannelName": "AI For Humans",
+      "ChannelLink": "https://www.youtube.com/@AIForHumansShow",
+      "ChannelImage": "https://yt3.googleusercontent.com/...",
+      "SubscriberCount": "29.7K",
+      "SubsCountRaw": "29700",
+      "ChannelDescription": "AI made fun..."
+    }
+  ]
+}
+```
+
+**XML Format:**
+```xml
+<?xml version="1.0" ?>
+<youtube_channels>
+  <metadata>
+    <export_date>2024-09-08T12:00:00</export_date>
+    <extractor_version>1.1.0</extractor_version>
+    <total_channels>64</total_channels>
+  </metadata>
+  <channels>
+    <channel>
+      <channelname>AI For Humans</channelname>
+      <channellink>https://www.youtube.com/@AIForHumansShow</channellink>
+      <channelimage>https://yt3.googleusercontent.com/...</channelimage>
+      <subscribercount>29.7K</subscribercount>
+      <subscountraw>29700</subscountraw>
+      <channeldescription>AI made fun...</channeldescription>
+    </channel>
+  </channels>
+</youtube_channels>
+```
+
+**SQL Format:**
+```sql
+-- YouTube Channels Export
+-- Generated on: 2024-09-08T12:00:00
+CREATE TABLE IF NOT EXISTS youtube_channels (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    channel_name VARCHAR(255) NOT NULL,
+    channel_link VARCHAR(500) NOT NULL UNIQUE,
+    channel_image VARCHAR(500),
+    subscriber_count VARCHAR(20),
+    subscriber_count_raw INTEGER,
+    channel_description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO youtube_channels (channel_name, channel_link, ...) VALUES
+  ('AI For Humans', 'https://www.youtube.com/@AIForHumansShow', ...);
 ```
 
 ## ⚙️ Configuration Options
@@ -107,7 +188,8 @@ _vector_,https://www.youtube.com/@_vector_,https://yt3.googleusercontent.com/xk1
 | Option | Description | Default |
 |--------|-------------|---------|
 | `input_file` | Path to YouTube subscriptions MHTML file | Required |
-| `--output <file>` | Output CSV filename | `youtube_channels.csv` |
+| `--output <file>` | Output filename (format auto-detected from extension) | `youtube_channels.csv` |
+| `--format <fmt>` | Output format (`csv`, `json`, `xml`, `sql`) | Auto-detected from extension |
 | `--output-dir <dir>` | Output directory path | Current directory |
 | `--quality <mode>` | Data extraction quality (`fast`, `comprehensive`) | `comprehensive` |
 | `--encoding <enc>` | Input file encoding | `utf-8` |
@@ -117,8 +199,16 @@ _vector_,https://www.youtube.com/@_vector_,https://yt3.googleusercontent.com/xk1
 ### Examples
 
 ```bash
-# Basic extraction
+# Basic extraction (CSV format)
 python bin/extract.py subscriptions.mhtml
+
+# Export to different formats (auto-detected)
+python bin/extract.py subscriptions.mhtml --output data.json
+python bin/extract.py subscriptions.mhtml --output channels.xml
+python bin/extract.py subscriptions.mhtml --output database.sql
+
+# Explicit format specification
+python bin/extract.py subscriptions.mhtml --output results --format json
 
 # High-quality extraction with custom output
 python bin/extract.py subscriptions.mhtml \
