@@ -1,0 +1,52 @@
+From: <Saved by Blink>
+Snapshot-Content-Location: https://www.youtube.com/feed/channels
+Subject: All subscriptions - YouTube
+Date: Sun, 8 Sep 2024 12:00:00 -0000
+MIME-Version: 1.0
+Content-Type: multipart/related;
+	type="text/html";
+	boundary="----MultipartBoundary--sample"
+
+------MultipartBoundary--sample
+Content-Type: text/html
+Content-ID: <frame-sample@mhtml.blink>
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html><html><head><title>All subscriptions - YouTube</title></head>
+<body>
+<ytd-channel-renderer>
+    <div class="ytd-channel-renderer">
+        <a href="https://www.youtube.com/@ExampleChannel">
+            <img src="https://yt3.googleusercontent.com/example-s176-c-k-c0x00ffffff-no-rj-mo" alt="Example Channel">
+        </a>
+        <yt-formatted-string class="style-scope ytd-channel-name">Example Channel</yt-formatted-string>
+        <span id="video-count">1.2M subscribers</span>
+        <yt-formatted-string id="description">This is an example YouTube channel description for testing purposes.</yt-formatted-string>
+    </div>
+</ytd-channel-renderer>
+
+<ytd-channel-renderer>
+    <div class="ytd-channel-renderer">
+        <a href="https://www.youtube.com/@TestChannel">
+            <img src="https://yt3.googleusercontent.com/test-s176-c-k-c0x00ffffff-no-rj-mo" alt="Test Channel">
+        </a>
+        <yt-formatted-string class="style-scope ytd-channel-name">Test Channel</yt-formatted-string>
+        <span id="video-count">500K subscribers</span>
+        <yt-formatted-string id="description">Another example channel for testing the extraction tool.</yt-formatted-string>
+    </div>
+</ytd-channel-renderer>
+</body></html>
+
+------MultipartBoundary--sample
+Content-Type: image/jpeg
+Content-Location: https://yt3.googleusercontent.com/example-s176-c-k-c0x00ffffff-no-rj-mo
+
+(Binary image data would be here)
+
+------MultipartBoundary--sample
+Content-Type: image/jpeg
+Content-Location: https://yt3.googleusercontent.com/test-s176-c-k-c0x00ffffff-no-rj-mo
+
+(Binary image data would be here)
+
+------MultipartBoundary--sample--

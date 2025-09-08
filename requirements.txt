@@ -1,0 +1,11 @@
+# YouTube Subscription Extractor Dependencies
+# Pure Python implementation - no external dependencies required
+# Uses only Python standard library modules:
+# - re (regular expressions)
+# - csv (CSV file handling)
+# - html (HTML entity decoding)
+# - argparse (command line arguments)
+# - sys (system functions)
+# - os (operating system interface)
+# - pathlib (path handling)
+# - urllib.parse (URL parsing)

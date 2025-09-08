@@ -1,0 +1,3 @@
+ChannelName,ChannelLink,ChannelImage,SubscriberCount,SubsCountRaw,ChannelDescription
+Example Channel,https://www.youtube.com/@ExampleChannel,https://yt3.googleusercontent.com/example-s176-c-k-c0x00ffffff-no-rj-mo,1.2M,1200000,This is an example YouTube channel description for testing purposes.
+Test Channel,https://www.youtube.com/@TestChannel,https://yt3.googleusercontent.com/test-s176-c-k-c0x00ffffff-no-rj-mo,500K,500000,Another example channel for testing the extraction tool.
