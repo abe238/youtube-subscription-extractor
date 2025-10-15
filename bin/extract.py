@@ -17,7 +17,7 @@ from pathlib import Path
 from urllib.parse import unquote
 import datetime
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 __author__ = "abe238"
 
 def convert_subscriber_count_to_raw(sub_count):
@@ -135,24 +135,42 @@ def extract_youtube_channels_comprehensive(mhtml_file_path, quality='comprehensi
         try:
             channel_data = {
                 'ChannelName': '',
+                'ChannelID': '',
                 'ChannelLink': '',
                 'ChannelImage': '',
                 'SubscriberCount': '',
                 'SubsCountRaw': '',
                 'ChannelDescription': ''
             }
-            
+
             # Extract channel URL and handle
             url_match = re.search(r'href="(https://www\.youtube\.com/@([^"]+))"', section)
             if not url_match:
                 continue
-                
+
             channel_data['ChannelLink'] = url_match.group(1)
             handle = url_match.group(2)
-            
+
             if handle in seen_handles:
                 continue
             seen_handles.add(handle)
+
+            # Extract channel ID (UC... format) - search in entire content near this handle
+            # First try in the section itself
+            channel_id_match = re.search(r'(UC[a-zA-Z0-9_-]{22})', section)
+            if channel_id_match:
+                channel_data['ChannelID'] = channel_id_match.group(1)
+            else:
+                # Search in broader content around the handle
+                handle_pos = content.find('@' + handle)
+                if handle_pos != -1:
+                    # Search in 5000 chars before and after
+                    search_start = max(0, handle_pos - 5000)
+                    search_end = min(len(content), handle_pos + 5000)
+                    search_area = content[search_start:search_end]
+                    channel_id_match = re.search(r'(UC[a-zA-Z0-9_-]{22})', search_area)
+                    if channel_id_match:
+                        channel_data['ChannelID'] = channel_id_match.group(1)
             
             # Extract channel name
             name_patterns = [
@@ -270,7 +288,7 @@ def save_channels_to_csv(channels, output_file, verbose=False):
         print("❌ No channels found to save.")
         return False
     
-    fieldnames = ['ChannelName', 'ChannelLink', 'ChannelImage', 'SubscriberCount', 'SubsCountRaw', 'ChannelDescription']
+    fieldnames = ['ChannelName', 'ChannelID', 'ChannelLink', 'ChannelImage', 'SubscriberCount', 'SubsCountRaw', 'ChannelDescription']
     
     try:
         with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
@@ -385,6 +403,7 @@ def save_channels_to_sql(channels, output_file, verbose=False):
             sqlfile.write("CREATE TABLE IF NOT EXISTS youtube_channels (\n")
             sqlfile.write("    id INTEGER PRIMARY KEY AUTOINCREMENT,\n")
             sqlfile.write("    channel_name VARCHAR(255) NOT NULL,\n")
+            sqlfile.write("    channel_id VARCHAR(30),\n")
             sqlfile.write("    channel_link VARCHAR(500) NOT NULL UNIQUE,\n")
             sqlfile.write("    channel_image VARCHAR(500),\n")
             sqlfile.write("    subscriber_count VARCHAR(20),\n")
@@ -403,14 +422,15 @@ def save_channels_to_sql(channels, output_file, verbose=False):
             for channel in channels:
                 # Escape single quotes in strings
                 name = channel['ChannelName'].replace("'", "''")
+                channel_id = channel.get('ChannelID', '').replace("'", "''") if channel.get('ChannelID') else ''
                 link = channel['ChannelLink'].replace("'", "''")
                 image = channel['ChannelImage'].replace("'", "''") if channel['ChannelImage'] else ''
                 sub_count = channel['SubscriberCount'].replace("'", "''") if channel['SubscriberCount'] else ''
                 sub_raw = channel['SubsCountRaw'] if channel['SubsCountRaw'] and channel['SubsCountRaw'].isdigit() else 'NULL'
                 description = channel['ChannelDescription'].replace("'", "''") if channel['ChannelDescription'] else ''
-                
-                sqlfile.write(f"INSERT INTO youtube_channels (channel_name, channel_link, channel_image, subscriber_count, subscriber_count_raw, channel_description) VALUES\n")
-                sqlfile.write(f"  ('{name}', '{link}', '{image}', '{sub_count}', {sub_raw}, '{description}');\n")
+
+                sqlfile.write(f"INSERT INTO youtube_channels (channel_name, channel_id, channel_link, channel_image, subscriber_count, subscriber_count_raw, channel_description) VALUES\n")
+                sqlfile.write(f"  ('{name}', '{channel_id}', '{link}', '{image}', '{sub_count}', {sub_raw}, '{description}');\n")
             
             sqlfile.write("\n-- Create indexes for better performance\n")
             sqlfile.write("CREATE INDEX IF NOT EXISTS idx_channel_name ON youtube_channels(channel_name);\n")

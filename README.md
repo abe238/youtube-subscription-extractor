@@ -102,6 +102,7 @@ All formats include the following channel information:
 | Column | Description | Example |
 |--------|-------------|---------|
 | `ChannelName` | Display name of the channel | "AI For Humans" |
+| `ChannelID` | YouTube channel ID (UC...) | "UCPjNBjflYl0-HQtUvOx0Ibw" |
 | `ChannelLink` | Full YouTube channel URL | "https://www.youtube.com/@AIForHumansShow" |
 | `ChannelImage` | Profile image URL (176x176) | "https://yt3.googleusercontent.com/..." |
 | `SubscriberCount` | Abbreviated subscriber count | "29.7K" |
@@ -112,8 +113,8 @@ All formats include the following channel information:
 
 **CSV Format:**
 ```csv
-ChannelName,ChannelLink,ChannelImage,SubscriberCount,SubsCountRaw,ChannelDescription
-AI For Humans,https://www.youtube.com/@AIForHumansShow,https://yt3.googleusercontent.com/...,29.7K,29700,"AI made fun..."
+ChannelName,ChannelID,ChannelLink,ChannelImage,SubscriberCount,SubsCountRaw,ChannelDescription
+AI For Humans,UCPjNBjflYl0-HQtUvOx0Ibw,https://www.youtube.com/@AIForHumansShow,https://yt3.googleusercontent.com/...,29.7K,29700,"AI made fun..."
 ```
 
 **JSON Format:**
@@ -121,7 +122,7 @@ AI For Humans,https://www.youtube.com/@AIForHumansShow,https://yt3.googleusercon
 {
   "metadata": {
     "export_date": "2024-09-08T12:00:00",
-    "extractor_version": "1.1.0",
+    "extractor_version": "1.2.0",
     "total_channels": 64,
     "channels_with_subscribers": 64,
     "channels_with_images": 8,
@@ -130,6 +131,7 @@ AI For Humans,https://www.youtube.com/@AIForHumansShow,https://yt3.googleusercon
   "channels": [
     {
       "ChannelName": "AI For Humans",
+      "ChannelID": "UCPjNBjflYl0-HQtUvOx0Ibw",
       "ChannelLink": "https://www.youtube.com/@AIForHumansShow",
       "ChannelImage": "https://yt3.googleusercontent.com/...",
       "SubscriberCount": "29.7K",
@@ -146,12 +148,13 @@ AI For Humans,https://www.youtube.com/@AIForHumansShow,https://yt3.googleusercon
 <youtube_channels>
   <metadata>
     <export_date>2024-09-08T12:00:00</export_date>
-    <extractor_version>1.1.0</extractor_version>
+    <extractor_version>1.2.0</extractor_version>
     <total_channels>64</total_channels>
   </metadata>
   <channels>
     <channel>
       <channelname>AI For Humans</channelname>
+      <channelid>UCPjNBjflYl0-HQtUvOx0Ibw</channelid>
       <channellink>https://www.youtube.com/@AIForHumansShow</channellink>
       <channelimage>https://yt3.googleusercontent.com/...</channelimage>
       <subscribercount>29.7K</subscribercount>
@@ -169,6 +172,7 @@ AI For Humans,https://www.youtube.com/@AIForHumansShow,https://yt3.googleusercon
 CREATE TABLE IF NOT EXISTS youtube_channels (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     channel_name VARCHAR(255) NOT NULL,
+    channel_id VARCHAR(30),
     channel_link VARCHAR(500) NOT NULL UNIQUE,
     channel_image VARCHAR(500),
     subscriber_count VARCHAR(20),
@@ -177,8 +181,8 @@ CREATE TABLE IF NOT EXISTS youtube_channels (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO youtube_channels (channel_name, channel_link, ...) VALUES
-  ('AI For Humans', 'https://www.youtube.com/@AIForHumansShow', ...);
+INSERT INTO youtube_channels (channel_name, channel_id, channel_link, ...) VALUES
+  ('AI For Humans', 'UCPjNBjflYl0-HQtUvOx0Ibw', 'https://www.youtube.com/@AIForHumansShow', ...);
 ```
 
 ## ⚙️ Configuration Options
