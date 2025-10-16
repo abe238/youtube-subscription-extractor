@@ -60,6 +60,7 @@ python bin/extract.py subscriptions.mhtml --output my_channels.csv
 python bin/extract.py subscriptions.mhtml --output data.json
 python bin/extract.py subscriptions.mhtml --output channels.xml
 python bin/extract.py subscriptions.mhtml --output database.sql
+python bin/extract.py subscriptions.mhtml --output subscriptions.opml
 
 # Specify output directory
 python bin/extract.py subscriptions.mhtml --output-dir ./exports/
@@ -94,6 +95,7 @@ The extractor supports multiple output formats, automatically detected from file
 - **JSON** (`.json`) - Structured data with metadata for programmatic use
 - **XML** (`.xml`) - Hierarchical markup format
 - **SQL** (`.sql`) - Database insert statements with table creation
+- **OPML** (`.opml`) - RSS feed list for RSS readers (Feedly, Reeder, etc.)
 
 ### Data Fields
 
@@ -185,6 +187,23 @@ INSERT INTO youtube_channels (channel_name, channel_id, channel_link, ...) VALUE
   ('AI For Humans', 'UCPjNBjflYl0-HQtUvOx0Ibw', 'https://www.youtube.com/@AIForHumansShow', ...);
 ```
 
+**OPML Format:**
+```xml
+<?xml version="1.0" ?>
+<opml version="2.0">
+  <head>
+    <title>YouTube Subscriptions</title>
+    <dateCreated>Thu, 16 Oct 2025 02:31:29 GMT</dateCreated>
+  </head>
+  <body>
+    <outline type="rss" text="AI For Humans" title="AI For Humans"
+             xmlUrl="https://youtube.com/feeds/videos.xml?channel_id=UCPjNBjflYl0-HQtUvOx0Ibw"
+             htmlUrl="https://www.youtube.com/@AIForHumansShow"/>
+    <!-- More channels... -->
+  </body>
+</opml>
+```
+
 ## ⚙️ Configuration Options
 
 ### Command Line Options
@@ -210,6 +229,7 @@ python bin/extract.py subscriptions.mhtml
 python bin/extract.py subscriptions.mhtml --output data.json
 python bin/extract.py subscriptions.mhtml --output channels.xml
 python bin/extract.py subscriptions.mhtml --output database.sql
+python bin/extract.py subscriptions.mhtml --output subscriptions.opml
 
 # Explicit format specification
 python bin/extract.py subscriptions.mhtml --output results --format json

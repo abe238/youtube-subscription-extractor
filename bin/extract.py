@@ -17,7 +17,7 @@ from pathlib import Path
 from urllib.parse import unquote
 import datetime
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 __author__ = "abe238"
 
 def convert_subscriber_count_to_raw(sub_count):
@@ -445,6 +445,64 @@ def save_channels_to_sql(channels, output_file, verbose=False):
         print(f"❌ Error saving SQL file: {e}")
         return False
 
+def save_channels_to_opml(channels, output_file, verbose=False):
+    """Save channels to OPML file for RSS readers"""
+    if not channels:
+        print("❌ No channels found to save.")
+        return False
+
+    try:
+        # Create OPML root
+        root = ET.Element("opml", version="2.0")
+
+        # Add head
+        head = ET.SubElement(root, "head")
+        ET.SubElement(head, "title").text = "YouTube Subscriptions"
+        ET.SubElement(head, "dateCreated").text = datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT")
+
+        # Add body
+        body = ET.SubElement(root, "body")
+
+        # Add each channel as an outline
+        for channel in channels:
+            channel_name = channel['ChannelName']
+            channel_id = channel.get('ChannelID', '')
+            channel_link = channel['ChannelLink']
+
+            # Create RSS feed URL
+            if channel_id and channel_id.startswith('UC'):
+                rss_url = f"https://youtube.com/feeds/videos.xml?channel_id={channel_id}"
+            else:
+                # Fallback to handle format if no channel ID
+                handle_match = re.search(r'@([^/]+)', channel_link)
+                if handle_match:
+                    rss_url = f"https://www.youtube.com/feeds/videos.xml?channel_id=@{handle_match.group(1)}"
+                else:
+                    continue  # Skip if we can't create RSS URL
+
+            outline = ET.SubElement(body, "outline")
+            outline.set("type", "rss")
+            outline.set("text", channel_name)
+            outline.set("title", channel_name)
+            outline.set("xmlUrl", rss_url)
+            outline.set("htmlUrl", channel_link)
+
+        # Pretty print the XML
+        xml_str = ET.tostring(root, encoding='unicode')
+        dom = minidom.parseString(xml_str)
+        pretty_xml = dom.toprettyxml(indent="  ", encoding=None)
+
+        with open(output_file, 'w', encoding='utf-8') as opmlfile:
+            opmlfile.write(pretty_xml)
+
+        if verbose:
+            print(f"💾 Saved {len(channels)} channels to {output_file}")
+        return True
+
+    except Exception as e:
+        print(f"❌ Error saving OPML file: {e}")
+        return False
+
 def get_output_format_from_extension(filename):
     """Determine output format from file extension"""
     ext = Path(filename).suffix.lower()
@@ -452,7 +510,8 @@ def get_output_format_from_extension(filename):
         '.csv': 'csv',
         '.json': 'json',
         '.xml': 'xml',
-        '.sql': 'sql'
+        '.sql': 'sql',
+        '.opml': 'opml'
     }
     return format_map.get(ext, 'csv')  # Default to CSV
 
@@ -465,7 +524,8 @@ def save_channels(channels, output_file, output_format=None, verbose=False):
         'csv': save_channels_to_csv,
         'json': save_channels_to_json,
         'xml': save_channels_to_xml,
-        'sql': save_channels_to_sql
+        'sql': save_channels_to_sql,
+        'opml': save_channels_to_opml
     }
     
     if output_format not in save_functions:
@@ -488,6 +548,7 @@ Examples:
   {sys.argv[0]} subscriptions.mhtml --output data.json --format json
   {sys.argv[0]} subscriptions.mhtml --output channels.xml
   {sys.argv[0]} subscriptions.mhtml --output database.sql --format sql
+  {sys.argv[0]} subscriptions.mhtml --output subscriptions.opml --format opml
   {sys.argv[0]} subscriptions.mhtml --quality fast --verbose
   {sys.argv[0]} subscriptions.mhtml --output-dir ./exports/
 
@@ -506,7 +567,7 @@ For more information, visit: https://github.com/abe238/youtube-subscription-extr
                        help='Output directory path (default: current directory)')
     
     parser.add_argument('--format', '-f',
-                       choices=['csv', 'json', 'xml', 'sql'],
+                       choices=['csv', 'json', 'xml', 'sql', 'opml'],
                        help='Output format (auto-detected from file extension if not specified)')
     
     parser.add_argument('--quality',
